@@ -1,47 +1,72 @@
 from datetime import datetime
-from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
+
 from pydantic import BaseModel
 
 
-class EventHistory(BaseModel):
-    event_id: int
-    activity: Optional[str]
-    event_dt: Optional[datetime]
-    latitude: Optional[Decimal]
-    longitude: Optional[Decimal]
-    odometer: Optional[Decimal]
-    fuel_level: Optional[Decimal]
-    order_number: Optional[str]
-    load_number: Optional[str]
-    shift_number: Optional[str]
-    stop_number: Optional[str]
+class EventHistoryItem(BaseModel):
+    EventId: int
+    DriverCode: Optional[str]
+    TractorCode: Optional[str]
+    ZoneCode: Optional[str]
+    Activity: Optional[str]
+    TelematicsEventId: Optional[str]
+    EventDt: Optional[datetime]
+    MessageHandle: Optional[str]
+    Latitude: Optional[float]
+    Longitude: Optional[float]
+    Odometer: Optional[float]
+    FuelLevel: Optional[float]
+    Trailer: Optional[str]
+    OrderNumber: Optional[str]
+    LoadNumber: Optional[str]
+    MoveNumber: Optional[str]
+    ShiftNumber: Optional[str]
+    StopNumber: Optional[str]
+    Started: Optional[datetime]
+    Arrived: Optional[datetime]
+    Departed: Optional[datetime]
+    Ended: Optional[datetime]
+    Processed: Optional[datetime]
+    ReceivedDt: Optional[datetime]
+    TransmitDelay: Optional[int]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
-class HistoryStop(BaseModel):
-    history_id: int
-    event_datetime: Optional[datetime]
-    activity: Optional[str]
-    shift_detail: Optional[int]
-    order_id: Optional[int]
-    load_num: Optional[str]
-    load_num_ord: Optional[int]
-    driver_upt_id: Optional[int]
-    driver_name: Optional[str]
-    truck_upt_id: Optional[int]
-    trailer_upt_id: Optional[int]
-    stop_type: Optional[str]
-    stop_upt_id: Optional[int]
-    stop_geotab_id: Optional[str]
-    stop_name: Optional[str]
-    stop_latitude: Optional[Decimal]
-    stop_longitude: Optional[Decimal]
-    stop_odometer: Optional[Decimal]
-    stop_fuel_level: Optional[Decimal]
+class HistoryStopItem(BaseModel):
+    HistoryID: int
+    EleosEventID: Optional[int]
+    EventDatetime: Optional[datetime]
+    Activity: Optional[str]
+    ShiftDetail: Optional[int]
+    OrderID: Optional[int]
+    LoadNum: Optional[str]
+    LoadNumOrd: Optional[int]
+    DriverUptID: Optional[int]
+    DriverName: Optional[str]
+    GeotabUsername: Optional[str]
+    TruckUptID: Optional[int]
+    TrailerUptID: Optional[int]
+    StopType: Optional[str]
+    StopUptID: Optional[int]
+    StopGeotabID: Optional[str]
+    StopName: Optional[str]
+    StopLatitude: Optional[float]
+    StopLongitude: Optional[float]
+    StopOdometer: Optional[float]
+    StopFuelLevel: Optional[float]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
+
+class HistoryStopFilter(BaseModel):
+    start: Optional[datetime]
+    end: Optional[datetime]
+    limit: Optional[int] = 100
+
+
+class EventQueryParams(BaseModel):
+    limit: int = 50

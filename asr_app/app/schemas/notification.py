@@ -1,18 +1,18 @@
-from pydantic import BaseModel
 from typing import Optional
 
+from pydantic import BaseModel
 
-class DriverNotification(BaseModel):
-    driver_id: int
-    username: str
-    message_body: str
-    contact: Optional[str]
-    sound: Optional[str]
+
+class NotificationItem(BaseModel):
+    DriverID: int
+    Username: str
+    MessageBody: Optional[str]
+    Contact: Optional[str]
+    Sound: Optional[str]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class NotificationAck(BaseModel):
     acknowledged: bool = True
-

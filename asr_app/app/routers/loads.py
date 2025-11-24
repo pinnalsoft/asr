@@ -1,9 +1,6 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import schemas
 from ..dependencies import get_current_driver, get_db
 from ..models.eleos_current import (
     EleosCurrentLoadsByDriver,
@@ -13,87 +10,50 @@ from ..models.eleos_current import (
     EleosDataBOLByProduct,
     EleosDocumentationLinksByLoad,
 )
-from ..models.eleos_driver import EleosDriverCredentials
+from ..schemas.load import (
+    BOLInfo,
+    DocumentLink,
+    LoadDetail,
+    LoadSummary,
+    ProductInfo,
+    StopInfo,
+    VehicleInfo,
+)
 
 router = APIRouter(prefix="/loads", tags=["loads"])
 
 
-def _vehicle_payload(vehicle):
-    if not vehicle:
-        return None
-    return schemas.load.VehicleInfo(
-        truck=vehicle.Truck,
-        trailer=vehicle.Trailer,
-        replacement_unit=vehicle.ReplacementUnit,
-        yard_name=vehicle.YardName,
-        yard_city=vehicle.YardCity,
-        yard_province=vehicle.YardProvince,
-        yard_postal_code=vehicle.YardPostalCode,
-        yard_address=vehicle.YardAddress,
-        yard_latitude=vehicle.YardLatitude,
-        yard_longitude=vehicle.YardLongitude,
-        comps={
-            "comp1": vehicle.Comp1,
-            "comp2": vehicle.Comp2,
-            "comp3": vehicle.Comp3,
-            "comp4": vehicle.Comp4,
-            "comp5": vehicle.Comp5,
-            "comp6": vehicle.Comp6,
-        },
-    )
-
-
-@router.get("", response_model=List[schemas.load.CurrentLoad])
-def list_loads(
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
-    db: Session = Depends(get_db),
-):
+@router.get("/", response_model=list[LoadSummary])
+def list_loads(db: Session = Depends(get_db), driver=Depends(get_current_driver)):
     loads = (
         db.query(EleosCurrentLoadsByDriver)
-        .filter(EleosCurrentLoadsByDriver.DriverID == current_driver.DriverID)
+        .filter(EleosCurrentLoadsByDriver.DriverID == driver.DriverID)
         .all()
     )
-    vehicles_by_shift = {
-        v.ShiftDetail: v
-        for v in db.query(EleosCurrentVehicleByDriver)
-        .filter(EleosCurrentVehicleByDriver.DriverID == current_driver.DriverID)
-        .all()
-    }
-    response: List[schemas.load.CurrentLoad] = []
+    vehicle = (
+        db.query(EleosCurrentVehicleByDriver)
+        .filter(EleosCurrentVehicleByDriver.DriverID == driver.DriverID)
+        .first()
+    )
+    vehicle_schema = VehicleInfo.from_orm(vehicle) if vehicle else None
+
+    response: list[LoadSummary] = []
     for load in loads:
-        response.append(
-            schemas.load.CurrentLoad(
-                shift_detail=load.ShiftDetail,
-                date=load.Date,
-                shift=load.Shift,
-                order_id=load.OrderID,
-                order_status=load.OrderStatus,
-                load_status=load.LoadStatus,
-                load_num=load.LoadNum,
-                supplier=load.Supplier,
-                customer=load.Customer,
-                ship_to=load.ShipTo,
-                loading_number=load.LoadingNumber,
-                special_instructions=load.SpecialInstructions,
-                work_flow_code=load.WorkFlowCode,
-                next_load_to_active=load.NextLoadToActive,
-                vehicle=_vehicle_payload(vehicles_by_shift.get(load.ShiftDetail)),
-            )
-        )
+        summary = LoadSummary.from_orm(load)
+        summary.vehicle = vehicle_schema
+        response.append(summary)
     return response
 
 
-@router.get("/{order_id}", response_model=schemas.load.LoadDetail)
+@router.get("/{order_id}", response_model=LoadDetail)
 def load_detail(
-    order_id: int,
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
-    db: Session = Depends(get_db),
+    order_id: int, db: Session = Depends(get_db), driver=Depends(get_current_driver)
 ):
     load = (
         db.query(EleosCurrentLoadsByDriver)
         .filter(
+            EleosCurrentLoadsByDriver.DriverID == driver.DriverID,
             EleosCurrentLoadsByDriver.OrderID == order_id,
-            EleosCurrentLoadsByDriver.DriverID == current_driver.DriverID,
         )
         .first()
     )
@@ -102,182 +62,99 @@ def load_detail(
 
     vehicle = (
         db.query(EleosCurrentVehicleByDriver)
-        .filter(
-            EleosCurrentVehicleByDriver.DriverID == current_driver.DriverID,
-            EleosCurrentVehicleByDriver.ShiftDetail == load.ShiftDetail,
-        )
+        .filter(EleosCurrentVehicleByDriver.DriverID == driver.DriverID)
         .first()
     )
-
     products = (
         db.query(EleosCurrentProductInfoByLoad)
         .filter(
+            EleosCurrentProductInfoByLoad.DriverID == driver.DriverID,
             EleosCurrentProductInfoByLoad.OrderID == order_id,
-            EleosCurrentProductInfoByLoad.DriverID == current_driver.DriverID,
         )
         .all()
     )
-
     stops = (
         db.query(EleosCurrentStopsByLoad)
         .filter(
+            EleosCurrentStopsByLoad.DriverID == driver.DriverID,
             EleosCurrentStopsByLoad.OrderID == order_id,
-            EleosCurrentStopsByLoad.DriverID == current_driver.DriverID,
         )
         .all()
     )
-
-    return schemas.load.LoadDetail(
-        shift_detail=load.ShiftDetail,
-        date=load.Date,
-        shift=load.Shift,
-        order_id=load.OrderID,
-        order_status=load.OrderStatus,
-        load_status=load.LoadStatus,
-        load_num=load.LoadNum,
-        supplier=load.Supplier,
-        customer=load.Customer,
-        ship_to=load.ShipTo,
-        loading_number=load.LoadingNumber,
-        special_instructions=load.SpecialInstructions,
-        work_flow_code=load.WorkFlowCode,
-        next_load_to_active=load.NextLoadToActive,
-        vehicle=_vehicle_payload(vehicle),
-        products=[
-            schemas.load.ProductInfo(
-                order_prod_id=p.OrderProdID,
-                product_id=p.ProductID,
-                product=p.Product,
-                product_code=p.ProductCode,
-                product_counter=p.ProductCounter,
-                dispatched_quantity=p.DispatchedQuantity,
-                ullage=p.Ullage,
-                rt_hrs=p.RTHrs,
-                ro_hrs=p.ROHrs,
-            )
-            for p in products
-        ],
-        stops=[
-            schemas.load.StopInfo(
-                terminal_id=s.TerminalID,
-                terminal_name=s.TerminalName,
-                terminal_city=s.TerminalCity,
-                terminal_province=s.TerminalProvince,
-                terminal_address=s.TerminalAddress,
-                terminal_latitude=s.TerminalLatitude,
-                terminal_longitude=s.TerminalLongitude,
-                station_id=s.StationID,
-                station_number=s.StationNumber,
-                station_name=s.StationName,
-                station_city=s.StationCity,
-                station_province=s.StationProvince,
-                station_address=s.StationAddress,
-                station_latitude=s.StationLatitude,
-                station_longitude=s.StationLongitude,
-            )
-            for s in stops
-        ],
-    )
-
-
-@router.get("/{order_id}/stops", response_model=List[schemas.load.StopInfo])
-def load_stops(
-    order_id: int,
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
-    db: Session = Depends(get_db),
-):
-    stops = (
-        db.query(EleosCurrentStopsByLoad)
-        .filter(
-            EleosCurrentStopsByLoad.OrderID == order_id,
-            EleosCurrentStopsByLoad.DriverID == current_driver.DriverID,
-        )
-        .all()
-    )
-    return [
-        schemas.load.StopInfo(
-            terminal_id=s.TerminalID,
-            terminal_name=s.TerminalName,
-            terminal_city=s.TerminalCity,
-            terminal_province=s.TerminalProvince,
-            terminal_address=s.TerminalAddress,
-            terminal_latitude=s.TerminalLatitude,
-            terminal_longitude=s.TerminalLongitude,
-            station_id=s.StationID,
-            station_number=s.StationNumber,
-            station_name=s.StationName,
-            station_city=s.StationCity,
-            station_province=s.StationProvince,
-            station_address=s.StationAddress,
-            station_latitude=s.StationLatitude,
-            station_longitude=s.StationLongitude,
-        )
-        for s in stops
-    ]
-
-
-@router.get("/{order_id}/bol", response_model=List[schemas.load.BOLInfo])
-def load_bol(
-    order_id: int,
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
-    db: Session = Depends(get_db),
-):
-    bol_records = (
-        db.query(EleosDataBOLByProduct)
-        .filter(
-            EleosDataBOLByProduct.OrderID == order_id,
-            EleosDataBOLByProduct.DriverID == current_driver.DriverID,
-        )
-        .all()
-    )
-    return [
-        schemas.load.BOLInfo(
-            id=b.ID,
-            order_prod_id=b.OrderProdID,
-            product_id=b.ProductID,
-            product_counter=b.ProductCounter,
-            product=b.Product,
-            product_code=b.ProductCode,
-            bol_number=b.BOLNumber,
-            planned_amount=b.PlannedAmount,
-            gross_quantity=b.GrossQuantity,
-            net_quantity=b.NetQuantity,
-            ullage=b.Ullage,
-            rt_hrs=b.RTHrs,
-            ro_hrs=b.ROHrs,
-        )
-        for b in bol_records
-    ]
-
-
-@router.get("/{order_id}/documents", response_model=List[schemas.load.DocumentationLink])
-def load_documents(
-    order_id: int,
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
-    db: Session = Depends(get_db),
-):
-    docs = (
+    documents = (
         db.query(EleosDocumentationLinksByLoad)
         .filter(
             EleosDocumentationLinksByLoad.OrderID == order_id,
-            EleosDocumentationLinksByLoad.ShiftDetail.in_(
-                db.query(EleosCurrentLoadsByDriver.ShiftDetail)
-                .filter(
-                    EleosCurrentLoadsByDriver.OrderID == order_id,
-                    EleosCurrentLoadsByDriver.DriverID == current_driver.DriverID,
-                )
-                .subquery()
-            ),
+            EleosDocumentationLinksByLoad.ShiftDetail == load.ShiftDetail,
         )
         .all()
     )
-    return [
-        schemas.load.DocumentationLink(
-            document_id=d.DocumentID,
-            document_type=d.DocumentType,
-            uploaded_at=d.UploadedAt,
-            link=d.Link,
+    bol_entries = (
+        db.query(EleosDataBOLByProduct)
+        .filter(
+            EleosDataBOLByProduct.OrderID == order_id,
+            EleosDataBOLByProduct.DriverID == driver.DriverID,
         )
-        for d in docs
-    ]
+        .all()
+    )
 
+    detail = LoadDetail.from_orm(load)
+    detail.vehicle = VehicleInfo.from_orm(vehicle) if vehicle else None
+    detail.products = [ProductInfo.from_orm(p) for p in products]
+    detail.stops = [StopInfo.from_orm(s) for s in stops]
+    detail.documents = [DocumentLink.from_orm(d) for d in documents]
+    detail.bol = [BOLInfo.from_orm(b) for b in bol_entries]
+    return detail
+
+
+@router.get("/{order_id}/stops", response_model=list[StopInfo])
+def load_stops(
+    order_id: int, db: Session = Depends(get_db), driver=Depends(get_current_driver)
+):
+    stops = (
+        db.query(EleosCurrentStopsByLoad)
+        .filter(
+            EleosCurrentStopsByLoad.DriverID == driver.DriverID,
+            EleosCurrentStopsByLoad.OrderID == order_id,
+        )
+        .all()
+    )
+    return [StopInfo.from_orm(stop) for stop in stops]
+
+
+@router.get("/{order_id}/bol", response_model=list[BOLInfo])
+def load_bol(
+    order_id: int, db: Session = Depends(get_db), driver=Depends(get_current_driver)
+):
+    bol_entries = (
+        db.query(EleosDataBOLByProduct)
+        .filter(
+            EleosDataBOLByProduct.DriverID == driver.DriverID,
+            EleosDataBOLByProduct.OrderID == order_id,
+        )
+        .all()
+    )
+    return [BOLInfo.from_orm(bol) for bol in bol_entries]
+
+
+@router.get("/{order_id}/documents", response_model=list[DocumentLink])
+def load_documents(
+    order_id: int, db: Session = Depends(get_db), driver=Depends(get_current_driver)
+):
+    documents = (
+        db.query(EleosDocumentationLinksByLoad)
+        .join(
+            EleosCurrentLoadsByDriver,
+            (
+                EleosDocumentationLinksByLoad.ShiftDetail
+                == EleosCurrentLoadsByDriver.ShiftDetail
+            )
+            & (EleosDocumentationLinksByLoad.OrderID == EleosCurrentLoadsByDriver.OrderID),
+        )
+        .filter(
+            EleosCurrentLoadsByDriver.DriverID == driver.DriverID,
+            EleosCurrentLoadsByDriver.OrderID == order_id,
+        )
+        .all()
+    )
+    return [DocumentLink.from_orm(doc) for doc in documents]

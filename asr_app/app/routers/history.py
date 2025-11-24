@@ -4,83 +4,45 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from .. import schemas
 from ..dependencies import get_current_driver, get_db
 from ..models.eleos_history import EleosEventHistory, EleosHistoryStopsByLoad
-from ..models.eleos_driver import EleosDriverCredentials
+from ..schemas.history import EventHistoryItem, HistoryStopItem
 
 router = APIRouter(prefix="/history", tags=["history"])
 
 
-@router.get("/events", response_model=List[schemas.history.EventHistory])
+@router.get("/events", response_model=List[EventHistoryItem])
 def list_events(
     limit: int = Query(50, ge=1, le=500),
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
     db: Session = Depends(get_db),
+    driver=Depends(get_current_driver),
 ):
     events = (
         db.query(EleosEventHistory)
-        .filter(EleosEventHistory.DriverCode == str(current_driver.DriverID))
+        .filter(EleosEventHistory.DriverCode == driver.Username)
         .order_by(EleosEventHistory.EventDt.desc())
         .limit(limit)
         .all()
     )
-    return [
-        schemas.history.EventHistory(
-            event_id=e.EventId,
-            activity=e.Activity,
-            event_dt=e.EventDt,
-            latitude=e.Latitude,
-            longitude=e.Longitude,
-            odometer=e.Odometer,
-            fuel_level=e.FuelLevel,
-            order_number=e.OrderNumber,
-            load_number=e.LoadNumber,
-            shift_number=e.ShiftNumber,
-            stop_number=e.StopNumber,
-        )
-        for e in events
-    ]
+    return [EventHistoryItem.from_orm(event) for event in events]
 
 
-@router.get("/stops", response_model=List[schemas.history.HistoryStop])
+@router.get("/stops", response_model=List[HistoryStopItem])
 def list_history_stops(
     start: Optional[datetime] = Query(None),
     end: Optional[datetime] = Query(None),
-    current_driver: EleosDriverCredentials = Depends(get_current_driver),
+    limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
+    driver=Depends(get_current_driver),
 ):
     query = db.query(EleosHistoryStopsByLoad).filter(
-        EleosHistoryStopsByLoad.DriverUptID == current_driver.DriverID
+        EleosHistoryStopsByLoad.DriverUptID == driver.DriverID
     )
+
     if start:
         query = query.filter(EleosHistoryStopsByLoad.EventDatetime >= start)
     if end:
         query = query.filter(EleosHistoryStopsByLoad.EventDatetime <= end)
 
-    stops = query.order_by(EleosHistoryStopsByLoad.EventDatetime.desc()).all()
-    return [
-        schemas.history.HistoryStop(
-            history_id=s.HistoryID,
-            event_datetime=s.EventDatetime,
-            activity=s.Activity,
-            shift_detail=s.ShiftDetail,
-            order_id=s.OrderID,
-            load_num=s.LoadNum,
-            load_num_ord=s.LoadNumOrd,
-            driver_upt_id=s.DriverUptID,
-            driver_name=s.DriverName,
-            truck_upt_id=s.TruckUptID,
-            trailer_upt_id=s.TrailerUptID,
-            stop_type=s.StopType,
-            stop_upt_id=s.StopUptID,
-            stop_geotab_id=s.StopGeotabID,
-            stop_name=s.StopName,
-            stop_latitude=s.StopLatitude,
-            stop_longitude=s.StopLongitude,
-            stop_odometer=s.StopOdometer,
-            stop_fuel_level=s.StopFuelLevel,
-        )
-        for s in stops
-    ]
-
+    stops = query.order_by(EleosHistoryStopsByLoad.EventDatetime.desc()).limit(limit).all()
+    return [HistoryStopItem.from_orm(stop) for stop in stops]

@@ -1,25 +1,25 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 from jose import JWTError, jwt
 
-from ..config import get_settings
-
-settings = get_settings()
+from ..config import settings
 
 
-def create_access_token(data: dict) -> tuple[str, datetime]:
-    expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expires_in_hours)
+ALGORITHM = "HS256"
+
+
+def create_access_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=settings.jwt_expires_in_hours)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
-    return encoded_jwt, expire
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=ALGORITHM)
+    return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[ALGORITHM])
         return payload
     except JWTError:
         return None
-

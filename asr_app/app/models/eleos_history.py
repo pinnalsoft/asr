@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, DECIMAL, Integer, String, PrimaryKeyConstraint
+from sqlalchemy import Column, DateTime, Integer, Numeric, String
 
 from ..database import Base
 
@@ -14,10 +14,10 @@ class EleosEventHistory(Base):
     TelematicsEventId = Column(String(100))
     EventDt = Column(DateTime)
     MessageHandle = Column(String(100))
-    Latitude = Column(DECIMAL(9, 6))
-    Longitude = Column(DECIMAL(9, 6))
-    Odometer = Column(DECIMAL(10, 2))
-    FuelLevel = Column(DECIMAL(5, 2))
+    Latitude = Column(Numeric(9, 6))
+    Longitude = Column(Numeric(9, 6))
+    Odometer = Column(Numeric(10, 2))
+    FuelLevel = Column(Numeric(5, 2))
     Trailer = Column(String(50))
     OrderNumber = Column(String(50))
     LoadNumber = Column(String(50))
@@ -53,8 +53,7 @@ class EleosHistoryStopsByLoad(Base):
     StopUptID = Column(Integer)
     StopGeotabID = Column(String(100))
     StopName = Column(String(200))
-    StopLatitude = Column(DECIMAL(9, 6))
-    StopLongitude = Column(DECIMAL(9, 6))
-    StopOdometer = Column(DECIMAL(10, 2))
-    StopFuelLevel = Column(DECIMAL(5, 2))
-
+    StopLatitude = Column(Numeric(9, 6))
+    StopLongitude = Column(Numeric(9, 6))
+    StopOdometer = Column(Numeric(10, 2))
+    StopFuelLevel = Column(Numeric(5, 2))

@@ -1,14 +1,14 @@
-from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    expires_at: datetime
 
 
-class TokenData(BaseModel):
+class TokenPayload(BaseModel):
     driver_id: int
     username: str
 
@@ -18,13 +18,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class Driver(BaseModel):
+class DriverProfile(BaseModel):
     driver_id: int
-    name: str | None = None
+    name: Optional[str]
     username: str
-    geotab_username: str | None = None
-    geotab_password_status: str | None = None
+    geotab_username: Optional[str]
+    geotab_password_status: Optional[str]
 
     class Config:
-        from_attributes = True
-
+        orm_mode = True

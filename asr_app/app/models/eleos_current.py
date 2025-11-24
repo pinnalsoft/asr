@@ -1,23 +1,19 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, DECIMAL, Integer, String, Text, PrimaryKeyConstraint
-from sqlalchemy.dialects.mysql import BIT
+from sqlalchemy import Boolean, Column, Date, DateTime, Integer, Numeric, String, Text
 
 from ..database import Base
 
 
 class EleosCurrentLoadsByDriver(Base):
     __tablename__ = "EleosCurrentLoadsByDriver"
-    __table_args__ = (
-        PrimaryKeyConstraint("ShiftDetail", "DriverID", "OrderID"),
-    )
 
+    ShiftDetail = Column(Integer, primary_key=True)
+    OrderID = Column(Integer, primary_key=True)
+    DriverID = Column(Integer, primary_key=True)
     ShiftHeaderNum = Column(Integer)
-    ShiftDetail = Column(Integer)
     Date = Column(Date)
     Shift = Column(String(10))
-    DriverID = Column(Integer)
     DriverName = Column(String(100))
     ActiveOrder = Column(Boolean)
-    OrderID = Column(Integer)
     OrderStatus = Column(String(20))
     LoadStatus = Column(String(20))
     TempLoadStatus = Column(String(20))
@@ -38,44 +34,38 @@ class EleosCurrentLoadsByDriver(Base):
 
 class EleosCurrentProductInfoByLoad(Base):
     __tablename__ = "EleosCurrentProductInfoByLoad"
-    __table_args__ = (
-        PrimaryKeyConstraint("ShiftDetail", "OrderID", "OrderProdID"),
-    )
 
-    ShiftDetail = Column(Integer)
-    DriverID = Column(Integer)
-    OrderID = Column(Integer)
-    OrderProdID = Column(Integer)
+    ShiftDetail = Column(Integer, primary_key=True)
+    DriverID = Column(Integer, primary_key=True)
+    OrderID = Column(Integer, primary_key=True)
+    OrderProdID = Column(Integer, primary_key=True)
     ProductID = Column(Integer)
     Product = Column(String(200))
     ProductCode = Column(String(50))
     ProductCounter = Column(Integer)
-    DispatchedQuantity = Column(DECIMAL(10, 2))
+    DispatchedQuantity = Column(Numeric(10, 2))
     SentMailCounter = Column(Integer)
     EventDescription = Column(String(255))
-    Ullage = Column(DECIMAL(10, 2))
-    RTHrs = Column(DECIMAL(6, 2))
-    ROHrs = Column(DECIMAL(6, 2))
+    Ullage = Column(Numeric(10, 2))
+    RTHrs = Column(Numeric(6, 2))
+    ROHrs = Column(Numeric(6, 2))
 
 
 class EleosCurrentStopsByLoad(Base):
     __tablename__ = "EleosCurrentStopsByLoad"
-    __table_args__ = (
-        PrimaryKeyConstraint("ShiftDetail", "OrderID", "TerminalID", "StationID"),
-    )
 
-    ShiftDetail = Column(Integer)
-    OrderID = Column(Integer)
-    DriverID = Column(Integer)
-    TerminalID = Column(Integer)
+    ShiftDetail = Column(Integer, primary_key=True)
+    OrderID = Column(Integer, primary_key=True)
+    DriverID = Column(Integer, primary_key=True)
+    TerminalID = Column(Integer, primary_key=True)
     TerminalGeotabID = Column(String(100))
     TerminalName = Column(String(200))
     TerminalProvince = Column(String(100))
     TerminalCity = Column(String(100))
     TerminalPostalCode = Column(String(20))
     TerminalAddress = Column(String(255))
-    TerminalLatitude = Column(DECIMAL(9, 6))
-    TerminalLongitude = Column(DECIMAL(9, 6))
+    TerminalLatitude = Column(Numeric(9, 6))
+    TerminalLongitude = Column(Numeric(9, 6))
     StationID = Column(Integer)
     StationGeotabID = Column(String(100))
     StationNumber = Column(String(50))
@@ -84,31 +74,28 @@ class EleosCurrentStopsByLoad(Base):
     StationCity = Column(String(100))
     StationPostalCode = Column(String(20))
     StationAddress = Column(String(255))
-    StationLatitude = Column(DECIMAL(9, 6))
-    StationLongitude = Column(DECIMAL(9, 6))
+    StationLatitude = Column(Numeric(9, 6))
+    StationLongitude = Column(Numeric(9, 6))
     SentMailCounter = Column(Integer)
     EventDescription = Column(String(255))
 
 
 class EleosCurrentVehicleByDriver(Base):
     __tablename__ = "EleosCurrentVehicleByDriver"
-    __table_args__ = (
-        PrimaryKeyConstraint("ShiftDetail", "DriverID"),
-    )
 
-    ShiftDetail = Column(Integer)
-    DriverID = Column(Integer)
+    ShiftDetail = Column(Integer, primary_key=True)
+    DriverID = Column(Integer, primary_key=True)
     DriverName = Column(String(100))
     TruckID = Column(Integer)
     Truck = Column(String(100))
     TrailerID = Column(Integer)
     Trailer = Column(String(100))
-    Comp1 = Column(DECIMAL(10, 2))
-    Comp2 = Column(DECIMAL(10, 2))
-    Comp3 = Column(DECIMAL(10, 2))
-    Comp4 = Column(DECIMAL(10, 2))
-    Comp5 = Column(DECIMAL(10, 2))
-    Comp6 = Column(DECIMAL(10, 2))
+    Comp1 = Column(Numeric(10, 2))
+    Comp2 = Column(Numeric(10, 2))
+    Comp3 = Column(Numeric(10, 2))
+    Comp4 = Column(Numeric(10, 2))
+    Comp5 = Column(Numeric(10, 2))
+    Comp6 = Column(Numeric(10, 2))
     ReplacementUnit = Column(Boolean)
     YardID = Column(Integer)
     YardName = Column(String(200))
@@ -116,8 +103,8 @@ class EleosCurrentVehicleByDriver(Base):
     YardCity = Column(String(100))
     YardPostalCode = Column(String(20))
     YardAddress = Column(String(255))
-    YardLatitude = Column(DECIMAL(9, 6))
-    YardLongitude = Column(DECIMAL(9, 6))
+    YardLatitude = Column(Numeric(9, 6))
+    YardLongitude = Column(Numeric(9, 6))
     SentMailCounter = Column(Integer)
     EventDescription = Column(String(255))
 
@@ -135,24 +122,20 @@ class EleosDataBOLByProduct(Base):
     Product = Column(String(200))
     ProductCode = Column(String(50))
     BOLNumber = Column(String(100))
-    PlannedAmount = Column(DECIMAL(10, 2))
-    GrossQuantity = Column(DECIMAL(10, 2))
-    NetQuantity = Column(DECIMAL(10, 2))
-    Ullage = Column(DECIMAL(10, 2))
-    RTHrs = Column(DECIMAL(6, 2))
-    ROHrs = Column(DECIMAL(6, 2))
+    PlannedAmount = Column(Numeric(10, 2))
+    GrossQuantity = Column(Numeric(10, 2))
+    NetQuantity = Column(Numeric(10, 2))
+    Ullage = Column(Numeric(10, 2))
+    RTHrs = Column(Numeric(6, 2))
+    ROHrs = Column(Numeric(6, 2))
 
 
 class EleosDocumentationLinksByLoad(Base):
     __tablename__ = "EleosDocumentationLinksByLoad"
-    __table_args__ = (
-        PrimaryKeyConstraint("ShiftDetail", "OrderID", "DocumentID"),
-    )
 
-    ShiftDetail = Column(Integer)
-    OrderID = Column(Integer)
-    DocumentID = Column(Integer)
+    ShiftDetail = Column(Integer, primary_key=True)
+    OrderID = Column(Integer, primary_key=True)
+    DocumentID = Column(Integer, primary_key=True)
     DocumentType = Column(String(50))
     UploadedAt = Column(DateTime)
     Link = Column(String(500))
-

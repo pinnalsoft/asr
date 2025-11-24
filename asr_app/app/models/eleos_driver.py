@@ -1,5 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, PrimaryKeyConstraint
-from sqlalchemy.dialects.mysql import BIT
+from sqlalchemy import Boolean, Column, Integer, String, Text
 
 from ..database import Base
 
@@ -17,13 +16,9 @@ class EleosDriverCredentials(Base):
 
 class EleosDriverNotifications(Base):
     __tablename__ = "EleosDriverNotifications"
-    __table_args__ = (
-        PrimaryKeyConstraint("DriverID", "Username", "MessageBody"),
-    )
 
-    DriverID = Column(Integer)
-    Username = Column(String(100))
+    DriverID = Column(Integer, primary_key=True)
+    Username = Column(String(100), primary_key=True)
     MessageBody = Column(Text)
     Contact = Column(String(100))
     Sound = Column(String(100))
-
